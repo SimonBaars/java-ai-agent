@@ -33,8 +33,8 @@ public class ReflectionCalculator {
         return memory;
     }
 
-    public void setMemory(double value) {
-        this.memory = value;
+    public void setMemory(double arg0) {
+        memory = arg0;
     }
 
     public static void main(String[] args) throws ExecutionException, InterruptedException {
@@ -48,6 +48,11 @@ public class ReflectionCalculator {
         // Create calculator instance and agent
         ReflectionCalculator calculator = new ReflectionCalculator();
         OpenAIAgent agent = new OpenAIAgent(apiKey, "gpt-4o");
+        agent.setSystemMessage("You are a helpful assistant that can use provided functions. When using functions, you MUST provide all required arguments according to the function schema. For example:\n" +
+                "- For add/subtract/multiply/divide, provide: {\"arg0\": number, \"arg1\": number}\n" +
+                "- For setMemory, provide: {\"arg0\": number}\n" +
+                "- For getMemory, provide: {}\n" +
+                "Never send empty argument objects for functions that require arguments. For questions that don't require function calls, provide direct and concise answers.");
 
         // Register all calculator methods
         agent.registerMethods(calculator);
