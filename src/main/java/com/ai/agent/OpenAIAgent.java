@@ -75,13 +75,10 @@ public class OpenAIAgent implements Agent {
                 // Add system message
                 ObjectNode systemMessage = messages.addObject();
                 systemMessage.put("role", "system");
-                systemMessage.put("content", "You are a helpful assistant that can answer questions and perform calculations. " +
-                    "When using calculation functions, always provide the required arguments. For example:\n" +
-                    "- For binary operations (add, subtract, multiply, divide), provide 'arg0' and 'arg1'\n" +
-                    "- For setMemory, provide 'value'\n" +
-                    "- For getMemory, no arguments are needed\n" +
-                    "Never send empty argument objects.\n" +
-                    "For non-calculation questions, provide direct and concise answers.");
+                systemMessage.put("content", "You are a helpful assistant that can use provided functions. " +
+                    "When using functions, always provide all required arguments according to the function schema. " +
+                    "Never send empty argument objects. " +
+                    "For questions that don't require function calls, provide direct and concise answers.");
                 
                 // Add conversation history
                 for (Map<String, Object> msg : conversationHistory) {
