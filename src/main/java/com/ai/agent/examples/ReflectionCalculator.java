@@ -68,17 +68,27 @@ public class ReflectionCalculator {
                 ObjectNode properties = schema.putObject("properties");
                 Parameter[] parameters = method.getParameters();
                 
-                for (Parameter param : parameters) {
-                    ObjectNode property = properties.putObject(param.getName());
+                if (method.getName().equals("setMemory")) {
+                    ObjectNode property = properties.putObject("value");
                     property.put("type", "number");
-                    property.put("description", "Parameter " + param.getName() + " for " + method.getName());
-                }
-
-                if (parameters.length > 0) {
+                    property.put("description", "The value to store in memory");
                     ArrayNode required = schema.putArray("required");
-                    for (Parameter param : parameters) {
-                        required.add(param.getName());
-                    }
+                    required.add("value");
+                } else if (method.getName().equals("getMemory")) {
+                    // No parameters needed
+                } else {
+                    // For binary operations (add, subtract, multiply, divide)
+                    ObjectNode arg0 = properties.putObject("arg0");
+                    arg0.put("type", "number");
+                    arg0.put("description", "First operand for " + method.getName());
+                    
+                    ObjectNode arg1 = properties.putObject("arg1");
+                    arg1.put("type", "number");
+                    arg1.put("description", "Second operand for " + method.getName());
+                    
+                    ArrayNode required = schema.putArray("required");
+                    required.add("arg0");
+                    required.add("arg1");
                 }
 
                 schema.put("additionalProperties", false);
@@ -86,15 +96,15 @@ public class ReflectionCalculator {
                 // Register function with schema
                 agent.registerFunction(method.getName(), params -> {
                     try {
-                        if (method.getParameterCount() == 2) {
-                            double a = ((Number) params.get("a")).doubleValue();
-                            double b = ((Number) params.get("b")).doubleValue();
-                            return method.invoke(calculator, a, b);
-                        } else if (method.getParameterCount() == 1) {
+                        if (method.getName().equals("setMemory")) {
                             double value = ((Number) params.get("value")).doubleValue();
                             return method.invoke(calculator, value);
-                        } else {
+                        } else if (method.getName().equals("getMemory")) {
                             return method.invoke(calculator);
+                        } else {
+                            double a = ((Number) params.get("arg0")).doubleValue();
+                            double b = ((Number) params.get("arg1")).doubleValue();
+                            return method.invoke(calculator, a, b);
                         }
                     } catch (Exception e) {
                         throw new RuntimeException("Error calling method: " + method.getName(), e);
