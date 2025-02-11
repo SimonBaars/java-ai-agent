@@ -2,6 +2,9 @@ package com.ai.agent.examples;
 
 import com.ai.agent.Agent;
 import com.ai.agent.OpenAIAgent;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import java.util.concurrent.ExecutionException;
 
@@ -18,21 +21,44 @@ public class SimpleCalculator {
         }
 
         // Create an agent instance
-        Agent agent = new OpenAIAgent(apiKey, "gpt-3.5-turbo");
+        OpenAIAgent agent = new OpenAIAgent(apiKey, "gpt-4o");
 
-        // Register a function for addition
+        // Create JSON mapper for function schemas
+        ObjectMapper mapper = new ObjectMapper();
+
+        // Create schema for binary operations
+        ObjectNode schema = mapper.createObjectNode();
+        schema.put("type", "object");
+        
+        ObjectNode properties = schema.putObject("properties");
+        
+        ObjectNode arg0 = properties.putObject("arg0");
+        arg0.put("type", "number");
+        arg0.put("description", "First operand for operation");
+        
+        ObjectNode arg1 = properties.putObject("arg1");
+        arg1.put("type", "number");
+        arg1.put("description", "Second operand for operation");
+        
+        ArrayNode required = schema.putArray("required");
+        required.add("arg0");
+        required.add("arg1");
+        
+        schema.put("additionalProperties", false);
+
+        // Register a function for addition with schema
         agent.registerFunction("add", params -> {
-            double a = ((Number) params.get("a")).doubleValue();
-            double b = ((Number) params.get("b")).doubleValue();
-            return a + b;
-        });
+            double x = ((Number) params.get("arg0")).doubleValue();
+            double y = ((Number) params.get("arg1")).doubleValue();
+            return x + y;
+        }, schema);
 
-        // Register a function for multiplication
+        // Register a function for multiplication with schema
         agent.registerFunction("multiply", params -> {
-            double a = ((Number) params.get("a")).doubleValue();
-            double b = ((Number) params.get("b")).doubleValue();
-            return a * b;
-        });
+            double x = ((Number) params.get("arg0")).doubleValue();
+            double y = ((Number) params.get("arg1")).doubleValue();
+            return x * y;
+        }, schema);
 
         // Example conversation with the agent
         String[] questions = {
