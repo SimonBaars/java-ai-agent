@@ -10,6 +10,8 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 
 import java.io.IOException;
+import java.lang.reflect.Method;
+import java.lang.reflect.Parameter;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -76,8 +78,12 @@ public class OpenAIAgent implements Agent {
                 ObjectNode systemMessage = messages.addObject();
                 systemMessage.put("role", "system");
                 systemMessage.put("content", "You are a helpful assistant that can use provided functions. " +
-                    "When using functions, always provide all required arguments according to the function schema. " +
-                    "Never send empty argument objects. " +
+                    "When using functions, you MUST provide all required arguments according to the function schema. " +
+                    "For example:\n" +
+                    "- For add/subtract/multiply/divide, provide: {\"arg0\": number, \"arg1\": number}\n" +
+                    "- For setMemory, provide: {\"value\": number}\n" +
+                    "- For getMemory, provide: {}\n" +
+                    "Never send empty argument objects for functions that require arguments. " +
                     "For questions that don't require function calls, provide direct and concise answers.");
                 
                 // Add conversation history
@@ -260,5 +266,71 @@ public class OpenAIAgent implements Agent {
         }
         schema.put("additionalProperties", false);
         return schema;
+    }
+
+    /**
+     * Registers all public methods from a class instance as functions.
+     * Methods with more than 2 parameters are ignored.
+     * The 'main' method is also ignored.
+     *
+     * @param instance The class instance whose methods should be registered
+     */
+    public void registerMethods(Object instance) {
+        ObjectMapper mapper = new ObjectMapper();
+
+        for (Method method : instance.getClass().getDeclaredMethods()) {
+            if (method.getParameterCount() <= 2 && !method.getName().equals("main")) {
+                // Create function schema
+                ObjectNode schema = mapper.createObjectNode();
+                schema.put("type", "object");
+                
+                ObjectNode properties = schema.putObject("properties");
+                Parameter[] parameters = method.getParameters();
+                
+                if (method.getName().equals("setMemory")) {
+                    ObjectNode property = properties.putObject("value");
+                    property.put("type", "number");
+                    property.put("description", "The value to store in memory");
+                    ArrayNode required = schema.putArray("required");
+                    required.add("value");
+                } else if (method.getName().equals("getMemory")) {
+                    // No parameters needed
+                } else if (parameters.length == 2) {
+                    // For binary operations
+                    ObjectNode arg0 = properties.putObject("arg0");
+                    arg0.put("type", "number");
+                    arg0.put("description", "First operand for " + method.getName());
+                    
+                    ObjectNode arg1 = properties.putObject("arg1");
+                    arg1.put("type", "number");
+                    arg1.put("description", "Second operand for " + method.getName());
+                    
+                    ArrayNode required = schema.putArray("required");
+                    required.add("arg0");
+                    required.add("arg1");
+                }
+
+                schema.put("additionalProperties", false);
+
+                // Register function with schema
+                registerFunction(method.getName(), params -> {
+                    try {
+                        if (method.getName().equals("setMemory")) {
+                            double value = ((Number) params.get("value")).doubleValue();
+                            return method.invoke(instance, value);
+                        } else if (method.getName().equals("getMemory")) {
+                            return method.invoke(instance);
+                        } else if (parameters.length == 2) {
+                            double arg0 = ((Number) params.get("arg0")).doubleValue();
+                            double arg1 = ((Number) params.get("arg1")).doubleValue();
+                            return method.invoke(instance, arg0, arg1);
+                        }
+                        return null;
+                    } catch (Exception e) {
+                        throw new RuntimeException("Error calling method: " + method.getName(), e);
+                    }
+                }, schema);
+            }
+        }
     }
 } 

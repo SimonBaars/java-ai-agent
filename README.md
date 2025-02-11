@@ -7,6 +7,7 @@ A Java library for creating AI agents that can interact with OpenAI's language m
 - Easy integration with OpenAI's GPT models
 - Asynchronous message handling using CompletableFuture
 - Support for function registration and execution
+- Automatic schema generation for Java methods
 - Conversation history management
 - Context-aware messaging
 
@@ -35,7 +36,7 @@ Add the following dependency to your `pom.xml`:
 ```java
 // Create an agent instance
 String apiKey = System.getenv("OPENAI_API_KEY");
-OpenAIAgent agent = new OpenAIAgent(apiKey, "gpt-3.5-turbo");
+OpenAIAgent agent = new OpenAIAgent(apiKey, "gpt-4o");
 
 // Send a message and get the response
 CompletableFuture<String> response = agent.sendMessage("What is 2+2?");
@@ -55,18 +56,73 @@ String result = response.get();
 System.out.println(result);
 ```
 
-### Registering Functions
+### Manual Function Registration
 
 ```java
-// Define a function
-AgentFunction calculateSum = parameters -> {
-    int a = ((Number) parameters.get("a")).intValue();
-    int b = ((Number) parameters.get("b")).intValue();
-    return a + b;
-};
+// Create a schema for the function
+ObjectMapper mapper = new ObjectMapper();
+ObjectNode schema = mapper.createObjectNode();
+schema.put("type", "object");
 
-// Register the function
-agent.registerFunction("calculateSum", calculateSum);
+ObjectNode properties = schema.putObject("properties");
+ObjectNode arg0 = properties.putObject("arg0");
+arg0.put("type", "number");
+arg0.put("description", "First operand");
+
+ObjectNode arg1 = properties.putObject("arg1");
+arg1.put("type", "number");
+arg1.put("description", "Second operand");
+
+ArrayNode required = schema.putArray("required");
+required.add("arg0");
+required.add("arg1");
+
+// Register a function with schema
+agent.registerFunction("add", params -> {
+    double x = ((Number) params.get("arg0")).doubleValue();
+    double y = ((Number) params.get("arg1")).doubleValue();
+    return x + y;
+}, schema);
+```
+
+### Automatic Method Registration
+
+```java
+// Create a class with methods
+public class Calculator {
+    private double memory = 0.0;
+
+    public double add(double a, double b) {
+        return a + b;
+    }
+
+    public double getMemory() {
+        return memory;
+    }
+
+    public void setMemory(double value) {
+        this.memory = value;
+    }
+}
+
+// Register all methods automatically
+Calculator calculator = new Calculator();
+agent.registerMethods(calculator);
+```
+
+## Examples
+
+The library includes two example applications:
+
+1. `SimpleCalculator`: Demonstrates manual function registration with schemas
+2. `ReflectionCalculator`: Shows automatic method registration using reflection
+
+To run the examples:
+
+```bash
+export OPENAI_API_KEY=your_api_key_here
+mvn exec:java -Dexec.mainClass="com.ai.agent.examples.SimpleCalculator"
+mvn exec:java -Dexec.mainClass="com.ai.agent.examples.ReflectionCalculator"
 ```
 
 ## Building from Source
