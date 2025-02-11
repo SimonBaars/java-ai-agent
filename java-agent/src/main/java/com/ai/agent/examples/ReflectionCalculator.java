@@ -2,8 +2,12 @@ package com.ai.agent.examples;
 
 import com.ai.agent.Agent;
 import com.ai.agent.OpenAIAgent;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 
 import java.lang.reflect.Method;
+import java.lang.reflect.Parameter;
 import java.util.concurrent.ExecutionException;
 
 /**
@@ -49,11 +53,37 @@ public class ReflectionCalculator {
 
         // Create calculator instance and agent
         ReflectionCalculator calculator = new ReflectionCalculator();
-        Agent agent = new OpenAIAgent(apiKey, "gpt-3.5-turbo");
+        Agent agent = new OpenAIAgent(apiKey, "gpt-4o");
 
-        // Register calculator methods using reflection
+        // Create JSON mapper for function schemas
+        ObjectMapper mapper = new ObjectMapper();
+
+        // Register calculator methods using reflection with proper schemas
         for (Method method : ReflectionCalculator.class.getDeclaredMethods()) {
             if (method.getParameterCount() <= 2 && !method.getName().equals("main")) {
+                // Create function schema
+                ObjectNode schema = mapper.createObjectNode();
+                schema.put("type", "object");
+                
+                ObjectNode properties = schema.putObject("properties");
+                Parameter[] parameters = method.getParameters();
+                
+                for (Parameter param : parameters) {
+                    ObjectNode property = properties.putObject(param.getName());
+                    property.put("type", "number");
+                    property.put("description", "Parameter " + param.getName() + " for " + method.getName());
+                }
+
+                if (parameters.length > 0) {
+                    ArrayNode required = schema.putArray("required");
+                    for (Parameter param : parameters) {
+                        required.add(param.getName());
+                    }
+                }
+
+                schema.put("additionalProperties", false);
+
+                // Register function with schema
                 agent.registerFunction(method.getName(), params -> {
                     try {
                         if (method.getParameterCount() == 2) {
