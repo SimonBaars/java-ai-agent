@@ -29,6 +29,7 @@ public class OpenAIAgent implements Agent {
     private final String apiKey;
     private final String model;
     private final Map<String, AgentFunction> functions;
+    private final Map<String, ObjectNode> functionSchemas;
     private final ObjectMapper objectMapper;
     private final HttpClient httpClient;
     private final List<Map<String, String>> conversationHistory;
@@ -51,6 +52,7 @@ public class OpenAIAgent implements Agent {
         this.apiKey = apiKey;
         this.model = model;
         this.functions = new ConcurrentHashMap<>();
+        this.functionSchemas = new ConcurrentHashMap<>();
         this.objectMapper = new ObjectMapper();
         this.httpClient = HttpClient.newHttpClient();
         this.conversationHistory = new ArrayList<>();
@@ -79,46 +81,46 @@ public class OpenAIAgent implements Agent {
                 ArrayNode messages = requestBody.putArray("messages");
                 for (Map<String, String> msg : conversationHistory) {
                     ObjectNode messageNode = messages.addObject();
-                    messageNode.put("role", msg.get("role"));
-                    messageNode.put("content", msg.get("content"));
+                    for (Map.Entry<String, String> entry : msg.entrySet()) {
+                        messageNode.put(entry.getKey(), entry.getValue());
+                    }
                 }
 
                 // Add tools (functions)
                 if (!functions.isEmpty()) {
                     ArrayNode tools = requestBody.putArray("tools");
-                    for (Map.Entry<String, AgentFunction> entry : functions.entrySet()) {
+                    for (Map.Entry<String, ObjectNode> entry : functionSchemas.entrySet()) {
                         ObjectNode tool = tools.addObject();
                         tool.put("type", "function");
                         
                         ObjectNode function = tool.putObject("function");
                         function.put("name", entry.getKey());
                         function.put("description", "Execute " + entry.getKey());
-                        
-                        ObjectNode parameters = function.putObject("parameters");
-                        parameters.put("type", "object");
-                        ObjectNode properties = parameters.putObject("properties");
-                        // Add generic parameters for now - this could be enhanced with proper schema
-                        properties.putObject("args").put("type", "object");
-                        parameters.putArray("required").add("args");
-                        parameters.put("additionalProperties", false);
-                        
-                        function.put("strict", true);
+                        function.set("parameters", entry.getValue());
                     }
                 }
+
+                // Log request body
+                String requestBodyStr = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(requestBody);
+                logger.info("Request body: {}", requestBodyStr);
 
                 // Create HTTP request
                 HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(OPENAI_API_URL))
                     .header("Content-Type", "application/json")
                     .header("Authorization", "Bearer " + apiKey)
-                    .POST(HttpRequest.BodyPublishers.ofString(requestBody.toString()))
+                    .POST(HttpRequest.BodyPublishers.ofString(requestBodyStr))
                     .build();
 
                 // Send request and get response
                 HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
                 
+                // Log response
+                logger.info("Response status: {}", response.statusCode());
+                logger.info("Response body: {}", response.body());
+
                 if (response.statusCode() != 200) {
-                    throw new RuntimeException("API request failed with status code: " + response.statusCode());
+                    throw new RuntimeException("API request failed with status code: " + response.statusCode() + ", body: " + response.body());
                 }
 
                 // Parse response
@@ -129,16 +131,28 @@ public class OpenAIAgent implements Agent {
                 // Check for function calls
                 if (responseMessage.has("tool_calls")) {
                     ArrayNode toolCalls = (ArrayNode) responseMessage.get("tool_calls");
+                    
+                    // Add assistant's message with tool calls to conversation history
+                    Map<String, String> assistantMessage = new HashMap<>();
+                    assistantMessage.put("role", "assistant");
+                    assistantMessage.put("content", responseMessage.get("content") != null ? responseMessage.get("content").asText() : null);
+                    assistantMessage.put("tool_calls", toolCalls.toString());
+                    conversationHistory.add(assistantMessage);
+
                     for (int i = 0; i < toolCalls.size(); i++) {
                         ObjectNode toolCall = (ObjectNode) toolCalls.get(i);
                         String functionName = toolCall.get("function").get("name").asText();
                         String arguments = toolCall.get("function").get("arguments").asText();
+                        
+                        logger.info("Function call: {} with arguments: {}", functionName, arguments);
                         
                         // Execute function
                         AgentFunction function = functions.get(functionName);
                         if (function != null) {
                             Map<String, Object> params = objectMapper.readValue(arguments, Map.class);
                             Object result = function.execute(params);
+                            
+                            logger.info("Function result: {}", result);
                             
                             // Add function result to conversation
                             Map<String, String> toolMessage = new HashMap<>();
@@ -176,6 +190,14 @@ public class OpenAIAgent implements Agent {
             throw new IllegalArgumentException("Function cannot be null");
         }
         functions.put(functionName, function);
+    }
+
+    /**
+     * Registers a function with a specific schema.
+     */
+    public void registerFunction(String functionName, AgentFunction function, ObjectNode schema) {
+        registerFunction(functionName, function);
+        functionSchemas.put(functionName, schema);
     }
 
     /**

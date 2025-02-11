@@ -53,7 +53,7 @@ public class ReflectionCalculator {
 
         // Create calculator instance and agent
         ReflectionCalculator calculator = new ReflectionCalculator();
-        Agent agent = new OpenAIAgent(apiKey, "gpt-4o");
+        OpenAIAgent agent = new OpenAIAgent(apiKey, "gpt-4o");
 
         // Create JSON mapper for function schemas
         ObjectMapper mapper = new ObjectMapper();
@@ -99,7 +99,7 @@ public class ReflectionCalculator {
                     } catch (Exception e) {
                         throw new RuntimeException("Error calling method: " + method.getName(), e);
                     }
-                });
+                }, schema);
             }
         }
 
