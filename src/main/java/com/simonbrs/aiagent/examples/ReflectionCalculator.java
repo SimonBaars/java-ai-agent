@@ -47,7 +47,7 @@ public class ReflectionCalculator {
 
         // Create calculator instance and agent
         ReflectionCalculator calculator = new ReflectionCalculator();
-        OpenAIAgent agent = new OpenAIAgent(apiKey, "gpt-4");
+        OpenAIAgent agent = new OpenAIAgent(apiKey, "gpt-4o");
 
         // Register all calculator methods
         agent.registerMethods(calculator);
