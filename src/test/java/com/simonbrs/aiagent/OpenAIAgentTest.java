@@ -1,4 +1,4 @@
-package com.ai.agent;
+package com.simonbrs.aiagent;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
