@@ -56,35 +56,6 @@ String result = response.get();
 System.out.println(result);
 ```
 
-### Manual Function Registration
-
-```java
-// Create a schema for the function
-ObjectMapper mapper = new ObjectMapper();
-ObjectNode schema = mapper.createObjectNode();
-schema.put("type", "object");
-
-ObjectNode properties = schema.putObject("properties");
-ObjectNode arg0 = properties.putObject("arg0");
-arg0.put("type", "number");
-arg0.put("description", "First operand");
-
-ObjectNode arg1 = properties.putObject("arg1");
-arg1.put("type", "number");
-arg1.put("description", "Second operand");
-
-ArrayNode required = schema.putArray("required");
-required.add("arg0");
-required.add("arg1");
-
-// Register a function with schema
-agent.registerFunction("add", params -> {
-    double x = ((Number) params.get("arg0")).doubleValue();
-    double y = ((Number) params.get("arg1")).doubleValue();
-    return x + y;
-}, schema);
-```
-
 ### Automatic Method Registration
 
 ```java
@@ -108,6 +79,22 @@ public class Calculator {
 // Register all methods automatically
 Calculator calculator = new Calculator();
 agent.registerMethods(calculator);
+
+String[] questions = {
+    "What is 15 added to 3?",
+    "Store the number 42 in memory",
+    "What number is currently stored in memory?",
+};
+
+for (String question : questions) {
+    try {
+        System.out.println("\nQuestion: " + question);
+        String response = agent.sendMessage(question).get();
+        System.out.println("Answer: " + response);
+    } catch (Exception e) {
+        System.err.println("Error: " + e.getMessage());
+    }
+}
 ```
 
 ## Examples
@@ -139,4 +126,4 @@ mvn test
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details. 
+This project is licensed under the MIT License - see the LICENSE file for details.
