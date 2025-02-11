@@ -286,28 +286,32 @@ public class OpenAIAgent implements Agent {
                 
                 ObjectNode properties = schema.putObject("properties");
                 Parameter[] parameters = method.getParameters();
-                
-                if (method.getName().equals("setMemory")) {
-                    ObjectNode property = properties.putObject("value");
-                    property.put("type", "number");
-                    property.put("description", "The value to store in memory");
-                    ArrayNode required = schema.putArray("required");
-                    required.add("value");
-                } else if (method.getName().equals("getMemory")) {
-                    // No parameters needed
-                } else if (parameters.length == 2) {
-                    // For binary operations
-                    ObjectNode arg0 = properties.putObject("arg0");
-                    arg0.put("type", "number");
-                    arg0.put("description", "First operand for " + method.getName());
+                ArrayNode required = schema.putArray("required");
+
+                // Add parameters to schema
+                for (int i = 0; i < parameters.length; i++) {
+                    Parameter param = parameters[i];
+                    String paramName = param.getName();
+                    Class<?> paramType = param.getType();
                     
-                    ObjectNode arg1 = properties.putObject("arg1");
-                    arg1.put("type", "number");
-                    arg1.put("description", "Second operand for " + method.getName());
+                    ObjectNode property = properties.putObject(paramName);
                     
-                    ArrayNode required = schema.putArray("required");
-                    required.add("arg0");
-                    required.add("arg1");
+                    // Map Java types to JSON schema types
+                    if (paramType == int.class || paramType == long.class || 
+                        paramType == float.class || paramType == double.class ||
+                        Number.class.isAssignableFrom(paramType)) {
+                        property.put("type", "number");
+                    } else if (paramType == boolean.class || paramType == Boolean.class) {
+                        property.put("type", "boolean");
+                    } else if (paramType == String.class) {
+                        property.put("type", "string");
+                    } else {
+                        // Default to string for other types
+                        property.put("type", "string");
+                    }
+                    
+                    property.put("description", String.format("Parameter %s for %s", paramName, method.getName()));
+                    required.add(paramName);
                 }
 
                 schema.put("additionalProperties", false);
@@ -315,17 +319,33 @@ public class OpenAIAgent implements Agent {
                 // Register function with schema
                 registerFunction(method.getName(), params -> {
                     try {
-                        if (method.getName().equals("setMemory")) {
-                            double value = ((Number) params.get("value")).doubleValue();
-                            return method.invoke(instance, value);
-                        } else if (method.getName().equals("getMemory")) {
-                            return method.invoke(instance);
-                        } else if (parameters.length == 2) {
-                            double arg0 = ((Number) params.get("arg0")).doubleValue();
-                            double arg1 = ((Number) params.get("arg1")).doubleValue();
-                            return method.invoke(instance, arg0, arg1);
+                        Object[] args = new Object[parameters.length];
+                        for (int i = 0; i < parameters.length; i++) {
+                            Parameter param = parameters[i];
+                            String paramName = param.getName();
+                            Class<?> paramType = param.getType();
+                            Object value = params.get(paramName);
+                            
+                            if (value != null) {
+                                // Convert value to the expected type
+                                if (paramType == int.class || paramType == Integer.class) {
+                                    args[i] = ((Number) value).intValue();
+                                } else if (paramType == long.class || paramType == Long.class) {
+                                    args[i] = ((Number) value).longValue();
+                                } else if (paramType == float.class || paramType == Float.class) {
+                                    args[i] = ((Number) value).floatValue();
+                                } else if (paramType == double.class || paramType == Double.class) {
+                                    args[i] = ((Number) value).doubleValue();
+                                } else if (paramType == boolean.class || paramType == Boolean.class) {
+                                    args[i] = (Boolean) value;
+                                } else if (paramType == String.class) {
+                                    args[i] = value.toString();
+                                } else {
+                                    args[i] = value;
+                                }
+                            }
                         }
-                        return null;
+                        return method.invoke(instance, args);
                     } catch (Exception e) {
                         throw new RuntimeException("Error calling method: " + method.getName(), e);
                     }
