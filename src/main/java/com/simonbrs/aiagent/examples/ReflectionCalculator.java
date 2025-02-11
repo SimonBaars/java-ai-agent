@@ -11,18 +11,22 @@ public class ReflectionCalculator {
     private double memory = 0.0;
 
     public double add(double a, double b) {
+        System.out.println("Java add() called with: " + a + " + " + b);
         return a + b;
     }
 
     public double subtract(double a, double b) {
+        System.out.println("Java subtract() called with: " + a + " - " + b);
         return a - b;
     }
 
     public double multiply(double a, double b) {
+        System.out.println("Java multiply() called with: " + a + " * " + b);
         return a * b;
     }
 
     public double divide(double a, double b) {
+        System.out.println("Java divide() called with: " + a + " / " + b);
         if (b == 0) {
             throw new IllegalArgumentException("Cannot divide by zero");
         }
@@ -30,10 +34,12 @@ public class ReflectionCalculator {
     }
 
     public double getMemory() {
+        System.out.println("Java getMemory() called");
         return memory;
     }
 
     public void setMemory(double arg0) {
+        System.out.println("Java setMemory() called with: " + arg0);
         memory = arg0;
     }
 
