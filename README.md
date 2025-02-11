@@ -23,9 +23,9 @@ Add the following dependency to your `pom.xml`:
 
 ```xml
 <dependency>
-    <groupId>com.ai.agent</groupId>
-    <artifactId>java-agent</artifactId>
-    <version>1.0-SNAPSHOT</version>
+    <groupId>com.simonbrs</groupId>
+    <artifactId>aiagent</artifactId>
+    <version>1.0</version>
 </dependency>
 ```
 
@@ -108,8 +108,8 @@ To run the examples:
 
 ```bash
 export OPENAI_API_KEY=your_api_key_here
-mvn exec:java -Dexec.mainClass="com.ai.agent.examples.SimpleCalculator"
-mvn exec:java -Dexec.mainClass="com.ai.agent.examples.ReflectionCalculator"
+mvn exec:java -Dexec.mainClass="com.simonbrs.aiagent.examples.SimpleCalculator"
+mvn exec:java -Dexec.mainClass="com.simonbrs.aiagent.examples.ReflectionCalculator"
 ```
 
 ## Building from Source
@@ -123,6 +123,47 @@ mvn exec:java -Dexec.mainClass="com.ai.agent.examples.ReflectionCalculator"
 export OPENAI_API_KEY=your_api_key_here
 mvn test
 ```
+
+## Publishing to Maven Central
+
+To publish to Maven Central:
+
+1. Create an account on [Sonatype JIRA](https://issues.sonatype.org/)
+2. Create a JIRA ticket to request access to publish under `com.simonbrs`
+3. Set up GPG:
+   ```bash
+   gpg --gen-key
+   gpg --list-keys
+   gpg --keyserver keyserver.ubuntu.com --send-keys YOUR_KEY_ID
+   ```
+4. Configure your Maven settings (`~/.m2/settings.xml`):
+   ```xml
+   <settings>
+     <servers>
+       <server>
+         <id>ossrh</id>
+         <username>your-jira-username</username>
+         <password>your-jira-password</password>
+       </server>
+     </servers>
+     <profiles>
+       <profile>
+         <id>ossrh</id>
+         <activation>
+           <activeByDefault>true</activeByDefault>
+         </activation>
+         <properties>
+           <gpg.executable>gpg</gpg.executable>
+           <gpg.passphrase>your-gpg-passphrase</gpg.passphrase>
+         </properties>
+       </profile>
+     </profiles>
+   </settings>
+   ```
+5. Deploy:
+   ```bash
+   mvn clean deploy
+   ```
 
 ## License
 

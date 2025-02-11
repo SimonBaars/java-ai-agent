@@ -1,7 +1,7 @@
-package com.ai.agent.examples;
+package com.simonbrs.aiagent.examples;
 
-import com.ai.agent.Agent;
-import com.ai.agent.OpenAIAgent;
+import com.simonbrs.aiagent.Agent;
+import com.simonbrs.aiagent.OpenAIAgent;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;

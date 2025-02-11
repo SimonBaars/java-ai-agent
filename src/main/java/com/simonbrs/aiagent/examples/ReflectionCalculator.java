@@ -1,6 +1,6 @@
-package com.ai.agent.examples;
+package com.simonbrs.aiagent.examples;
 
-import com.ai.agent.OpenAIAgent;
+import com.simonbrs.aiagent.OpenAIAgent;
 
 import java.util.concurrent.ExecutionException;
 

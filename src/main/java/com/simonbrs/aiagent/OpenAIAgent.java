@@ -1,4 +1,4 @@
-package com.ai.agent;
+package com.simonbrs.aiagent;
 
 import java.util.*;
 import java.util.concurrent.*;

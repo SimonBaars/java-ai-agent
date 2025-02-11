@@ -1,4 +1,4 @@
-package com.ai.agent;
+package com.simonbrs.aiagent;
 
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
