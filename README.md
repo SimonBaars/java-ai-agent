@@ -124,47 +124,6 @@ export OPENAI_API_KEY=your_api_key_here
 mvn test
 ```
 
-## Publishing to Maven Central
-
-To publish to Maven Central:
-
-1. Create an account on [Sonatype JIRA](https://issues.sonatype.org/)
-2. Create a JIRA ticket to request access to publish under `com.simonbrs`
-3. Set up GPG:
-   ```bash
-   gpg --gen-key
-   gpg --list-keys
-   gpg --keyserver keyserver.ubuntu.com --send-keys YOUR_KEY_ID
-   ```
-4. Configure your Maven settings (`~/.m2/settings.xml`):
-   ```xml
-   <settings>
-     <servers>
-       <server>
-         <id>ossrh</id>
-         <username>your-jira-username</username>
-         <password>your-jira-password</password>
-       </server>
-     </servers>
-     <profiles>
-       <profile>
-         <id>ossrh</id>
-         <activation>
-           <activeByDefault>true</activeByDefault>
-         </activation>
-         <properties>
-           <gpg.executable>gpg</gpg.executable>
-           <gpg.passphrase>your-gpg-passphrase</gpg.passphrase>
-         </properties>
-       </profile>
-     </profiles>
-   </settings>
-   ```
-5. Deploy:
-   ```bash
-   mvn clean deploy
-   ```
-
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
