@@ -50,14 +50,22 @@ public class SimpleCalculator {
         agent.registerFunction("add", params -> {
             double x = ((Number) params.get("arg0")).doubleValue();
             double y = ((Number) params.get("arg1")).doubleValue();
-            return x + y;
+            double result = x + y;
+            if (Double.isInfinite(result)) {
+                throw new IllegalArgumentException("Addition would result in infinity");
+            }
+            return result;
         }, schema);
 
         // Register a function for multiplication with schema
         agent.registerFunction("multiply", params -> {
             double x = ((Number) params.get("arg0")).doubleValue();
             double y = ((Number) params.get("arg1")).doubleValue();
-            return x * y;
+            double result = x * y;
+            if (Double.isInfinite(result)) {
+                throw new IllegalArgumentException("Multiplication would result in infinity");
+            }
+            return result;
         }, schema);
 
         // Example conversation with the agent
@@ -65,7 +73,8 @@ public class SimpleCalculator {
             "What is 5 plus 3?",
             "What is 7 times 6?",
             "If I have 4 apples and get 3 more, how many do I have?",
-            "What is the product of 8 and 9?"
+            "What is the product of 8 and 9?",
+            "What happens if we multiply a very large number by itself?"
         };
 
         for (String question : questions) {

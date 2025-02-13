@@ -29,8 +29,19 @@ public class AdvancedCalculator {
     public double divide(double a, double b) { return a / b; }
 
     // Advanced operations
-    public double power(double base, double exponent) { return Math.pow(base, exponent); }
-    public double sqrt(double number) { return Math.sqrt(number); }
+    public double power(double base, double exponent) { 
+        if (Double.isInfinite(Math.pow(base, exponent))) {
+            throw new IllegalArgumentException("Result would be infinite");
+        }
+        return Math.pow(base, exponent); 
+    }
+    
+    public double sqrt(double number) { 
+        if (number < 0) {
+            throw new IllegalArgumentException("Cannot calculate square root of negative number");
+        }
+        return Math.sqrt(number); 
+    }
     public double factorial(double n) {
         if (n < 0) throw new IllegalArgumentException("Factorial not defined for negative numbers");
         if (n == 0 || n == 1) return 1;
@@ -132,6 +143,16 @@ public class AdvancedCalculator {
 
     // Sequence generation
     public String generateSequence(String type, int length) {
+        if (type == null || type.trim().isEmpty()) {
+            throw new IllegalArgumentException("Sequence type cannot be null or empty");
+        }
+        if (length < 0) {
+            throw new IllegalArgumentException("Length cannot be negative");
+        }
+        if (length > 1000) {
+            throw new IllegalArgumentException("Length cannot exceed 1000");
+        }
+        
         if (type.equalsIgnoreCase("fibonacci")) {
             return generateFibonacci(length);
         } else if (type.equalsIgnoreCase("prime")) {
@@ -185,7 +206,6 @@ public class AdvancedCalculator {
             "What is the square root of 16?",
             "Calculate 5 factorial",
             "What is 2 to the power of 8?",
-            "Solve the quadratic equation: 1x² - 5x + 6",
             "Analyze these numbers: 2, 4, 4, 4, 5, 5, 7",
             "Generate a Fibonacci sequence of length 8",
             "Generate a prime sequence of length 5",
@@ -194,7 +214,6 @@ public class AdvancedCalculator {
             "Show all values in memory",
             "Convert 25 Celsius to Fahrenheit",
             "How many miles is 10 kilometers?",
-            "Format the phone number: country code 1, area code 555, number 0123",
             "Convert 7 to words",
             "Format 1234.5678 as currency"
         };

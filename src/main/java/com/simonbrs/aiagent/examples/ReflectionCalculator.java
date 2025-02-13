@@ -40,6 +40,9 @@ public class ReflectionCalculator {
 
     public void setMemory(double arg0) {
         System.out.println("Java setMemory() called with: " + arg0);
+        if (Double.isInfinite(arg0) || Double.isNaN(arg0)) {
+            throw new IllegalArgumentException("Cannot store infinite or NaN values in memory");
+        }
         memory = arg0;
     }
 
@@ -65,7 +68,9 @@ public class ReflectionCalculator {
             "Store the number 42 in memory",
             "What number is currently stored in memory?",
             "Take the number in memory and multiply it by 2",
-            "What is 1 divided by 0?"
+            "What is 1 divided by 0?",
+            "Can you store infinity in memory?",
+            "What happens if we try to store NaN in memory?"
         };
 
         for (String question : questions) {
