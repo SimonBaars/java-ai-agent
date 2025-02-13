@@ -20,8 +20,9 @@ public class FunctionSchemaGenerator {
         ArrayNode required = schema.putArray("required");
 
         Parameter[] parameters = method.getParameters();
-        for (Parameter param : parameters) {
-            String paramName = param.getName();
+        for (int i = 0; i < parameters.length; i++) {
+            Parameter param = parameters[i];
+            String paramName = "arg" + i;
             Class<?> paramType = param.getType();
             
             ObjectNode property = properties.putObject(paramName);
@@ -64,7 +65,7 @@ public class FunctionSchemaGenerator {
         } else if (paramType == String.class) {
             property.put("type", "string");
             property.put("description", String.format("Text parameter %s for %s", paramName, functionName));
-            addStringFormatHints(property, paramName);
+            addStringFormatHints(property, paramName, functionName);
         } else if (paramType.isArray()) {
             property.put("type", "array");
             property.put("description", String.format("Array parameter %s for %s", paramName, functionName));
@@ -76,10 +77,24 @@ public class FunctionSchemaGenerator {
         }
     }
 
-    private void addStringFormatHints(ObjectNode property, String paramName) {
-        String lowerName = paramName.toLowerCase();
-        if (lowerName.contains("json")) {
-            property.put("format", "json");
+    private void addStringFormatHints(ObjectNode property, String paramName, String functionName) {
+        String lowerName = functionName.toLowerCase();
+        if (lowerName.contains("sequence") || lowerName.contains("generate")) {
+            if (paramName.equals("arg0")) {
+                property.put("description", "Type of sequence to generate (e.g., 'fibonacci' or 'prime')");
+                property.put("enum", new String[]{"fibonacci", "prime"});
+            } else if (paramName.equals("arg1")) {
+                property.put("description", "Length of sequence to generate");
+                property.put("type", "number");
+                property.put("minimum", 1);
+            }
+        } else if (lowerName.contains("memory")) {
+            if (paramName.equals("arg0")) {
+                property.put("description", "Key to store/recall value");
+            } else if (paramName.equals("arg1")) {
+                property.put("description", "Value to store in memory");
+                property.put("type", "number");
+            }
         } else if (lowerName.contains("date")) {
             property.put("format", "date");
         }
@@ -92,6 +107,10 @@ public class FunctionSchemaGenerator {
             return "number";
         } else if (type == boolean.class || type == Boolean.class) {
             return "boolean";
+        } else if (type == String.class) {
+            return "string";
+        } else if (type.isArray()) {
+            return "array";
         }
         return "string";
     }

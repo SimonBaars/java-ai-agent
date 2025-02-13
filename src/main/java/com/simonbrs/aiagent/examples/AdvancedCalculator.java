@@ -38,10 +38,30 @@ public class AdvancedCalculator {
     }
 
     // Memory operations
-    public void storeInMemory(String key, double value) { memory.put(key, value); }
-    public double recallFromMemory(String key) { return memory.getOrDefault(key, 0.0); }
-    public void clearMemory(String key) { memory.remove(key); }
-    public String listMemory() { return memory.toString(); }
+    public void storeInMemory(String key, double value) { 
+        if (key == null || key.trim().isEmpty()) {
+            throw new IllegalArgumentException("Memory key cannot be null or empty");
+        }
+        memory.put(key.trim(), value); 
+    }
+    
+    public double recallFromMemory(String key) { 
+        if (key == null || key.trim().isEmpty()) {
+            throw new IllegalArgumentException("Memory key cannot be null or empty");
+        }
+        return memory.getOrDefault(key.trim(), 0.0); 
+    }
+    
+    public void clearMemory(String key) { 
+        if (key == null || key.trim().isEmpty()) {
+            throw new IllegalArgumentException("Memory key cannot be null or empty");
+        }
+        memory.remove(key.trim()); 
+    }
+    
+    public String listMemory() { 
+        return memory.isEmpty() ? "Memory is empty" : memory.toString(); 
+    }
 
     // Unit conversions
     public double celsiusToFahrenheit(double celsius) { return celsius * 9/5 + 32; }
@@ -120,7 +140,7 @@ public class AdvancedCalculator {
         return "Unknown sequence type. Supported types: fibonacci, prime";
     }
 
-    private String generateFibonacci(int length) {
+    public String generateFibonacci(int length) {
         List<Integer> sequence = new ArrayList<>();
         if (length >= 1) sequence.add(0);
         if (length >= 2) sequence.add(1);
@@ -130,7 +150,7 @@ public class AdvancedCalculator {
         return sequence.toString();
     }
 
-    private String generatePrimes(int length) {
+    public String generatePrimes(int length) {
         List<Integer> primes = new ArrayList<>();
         int num = 2;
         while (primes.size() < length) {
@@ -167,8 +187,8 @@ public class AdvancedCalculator {
             "What is 2 to the power of 8?",
             "Solve the quadratic equation: 1x² - 5x + 6",
             "Analyze these numbers: 2, 4, 4, 4, 5, 5, 7",
-            "Generate the first 8 Fibonacci numbers",
-            "Generate the first 5 prime numbers",
+            "Generate a Fibonacci sequence of length 8",
+            "Generate a prime sequence of length 5",
             "Store 42 in memory with key 'answer'",
             "What is the value stored with key 'answer'?",
             "Show all values in memory",

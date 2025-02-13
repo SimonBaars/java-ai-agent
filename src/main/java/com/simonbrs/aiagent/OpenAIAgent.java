@@ -294,13 +294,19 @@ public class OpenAIAgent implements Agent {
             Object[] args = new Object[methodParams.length];
             
             for (int i = 0; i < methodParams.length; i++) {
-                Parameter param = methodParams[i];
-                String paramName = param.getName();
-                Class<?> paramType = param.getType();
+                String paramName = "arg" + i;
+                Class<?> paramType = methodParams[i].getType();
                 Object value = parameters.get(paramName);
                 
                 if (value != null) {
-                    args[i] = TypeConverter.convert(value, paramType);
+                    try {
+                        args[i] = TypeConverter.convert(value, paramType);
+                    } catch (Exception e) {
+                        throw new IllegalArgumentException("Failed to convert parameter " + paramName + 
+                            " to type " + paramType.getSimpleName() + ": " + e.getMessage());
+                    }
+                } else {
+                    throw new IllegalArgumentException("Missing required parameter: " + paramName);
                 }
             }
             
@@ -317,7 +323,7 @@ public class OpenAIAgent implements Agent {
      */
     public void registerMethods(Object instance) {
         for (Method method : instance.getClass().getDeclaredMethods()) {
-            if (method.getParameterCount() <= 2 && !method.getName().equals("main")) {
+            if (!method.getName().equals("main")) {
                 ObjectNode schema = schemaGenerator.generateSchema(method);
                 registerFunction(method.getName(), new MethodFunction(method, instance), schema);
             }
