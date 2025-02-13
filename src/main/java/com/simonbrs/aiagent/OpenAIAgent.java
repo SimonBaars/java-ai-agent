@@ -74,17 +74,10 @@ public class OpenAIAgent implements Agent {
                 // Add messages
                 ArrayNode messages = requestBody.putArray("messages");
                 
-                // Add system message
+                // Add system message with dynamic function descriptions
                 ObjectNode systemMessage = messages.addObject();
                 systemMessage.put("role", "system");
-                systemMessage.put("content", "You are a helpful assistant that can use provided functions. " +
-                    "When using functions, you MUST provide all required arguments according to the function schema. " +
-                    "For example:\n" +
-                    "- For add/subtract/multiply/divide, provide: {\"arg0\": number, \"arg1\": number}\n" +
-                    "- For setMemory, provide: {\"arg0\": number}\n" +
-                    "- For getMemory, provide: {}\n" +
-                    "Never send empty argument objects for functions that require arguments. " +
-                    "For questions that don't require function calls, provide direct and concise answers.");
+                systemMessage.put("content", generateSystemPrompt());
                 
                 // Add conversation history
                 for (Map<String, Object> msg : conversationHistory) {
@@ -112,7 +105,10 @@ public class OpenAIAgent implements Agent {
                         
                         ObjectNode function = tool.putObject("function");
                         function.put("name", entry.getKey());
-                        function.put("description", "Execute " + entry.getKey());
+                        
+                        // Get method description if available
+                        String description = getFunctionDescription(entry.getKey(), entry.getValue());
+                        function.put("description", description);
                         
                         // Use schema if available, otherwise create default schema
                         ObjectNode schema = functionSchemas.getOrDefault(entry.getKey(), createDefaultSchema(entry.getKey()));
@@ -253,19 +249,154 @@ public class OpenAIAgent implements Agent {
 
     private ObjectNode createDefaultSchema(String functionName) {
         ObjectNode schema = objectMapper.createObjectNode();
+        schema.put("type", "object");
         ObjectNode properties = schema.putObject("properties");
         ArrayNode required = schema.putArray("required");
-        
-        // For now, we assume all functions take 2 parameters
-        for (int i = 0; i < 2; i++) {
-            String paramName = "arg" + i;
-            ObjectNode param = properties.putObject(paramName);
-            param.put("type", "number");
-            param.put("description", "Parameter " + paramName + " for " + functionName);
-            required.add(paramName);
+
+        // Get method by name from registered functions
+        Method[] methods = functions.values().stream()
+            .filter(f -> f instanceof MethodFunction)
+            .map(f -> ((MethodFunction) f).getMethod())
+            .filter(m -> m.getName().equals(functionName))
+            .toArray(Method[]::new);
+
+        if (methods.length > 0) {
+            Method method = methods[0];
+            Parameter[] parameters = method.getParameters();
+            
+            for (Parameter param : parameters) {
+                String paramName = param.getName();
+                Class<?> paramType = param.getType();
+                
+                ObjectNode property = properties.putObject(paramName);
+                
+                // Map Java types to JSON schema types with detailed descriptions
+                if (paramType == int.class || paramType == long.class || 
+                    paramType == float.class || paramType == double.class ||
+                    Number.class.isAssignableFrom(paramType)) {
+                    property.put("type", "number");
+                    if (paramType == int.class || paramType == long.class) {
+                        property.put("description", String.format("Integer parameter %s for %s", paramName, functionName));
+                    } else {
+                        property.put("description", String.format("Decimal number parameter %s for %s", paramName, functionName));
+                    }
+                } else if (paramType == boolean.class || paramType == Boolean.class) {
+                    property.put("type", "boolean");
+                    property.put("description", String.format("Boolean parameter %s for %s", paramName, functionName));
+                } else if (paramType == String.class) {
+                    property.put("type", "string");
+                    property.put("description", String.format("Text parameter %s for %s", paramName, functionName));
+                    // Add format hints for common string patterns
+                    if (paramName.toLowerCase().contains("json")) {
+                        property.put("format", "json");
+                    } else if (paramName.toLowerCase().contains("date")) {
+                        property.put("format", "date");
+                    }
+                } else if (paramType.isArray()) {
+                    property.put("type", "array");
+                    property.put("description", String.format("Array parameter %s for %s", paramName, functionName));
+                    ObjectNode items = property.putObject("items");
+                    items.put("type", getJsonType(paramType.getComponentType()));
+                } else {
+                    // Default to string for other types
+                    property.put("type", "string");
+                    property.put("description", String.format("Parameter %s for %s (type: %s)", paramName, functionName, paramType.getSimpleName()));
+                }
+                
+                required.add(paramName);
+            }
+        } else {
+            // Fallback for functions without reflection info
+            ObjectNode arg0 = properties.putObject("arg0");
+            arg0.put("type", "number");
+            arg0.put("description", "First parameter for " + functionName);
+            required.add("arg0");
         }
+
         schema.put("additionalProperties", false);
         return schema;
+    }
+
+    private String getJsonType(Class<?> type) {
+        if (type == int.class || type == long.class || 
+            type == float.class || type == double.class ||
+            Number.class.isAssignableFrom(type)) {
+            return "number";
+        } else if (type == boolean.class || type == Boolean.class) {
+            return "boolean";
+        } else {
+            return "string";
+        }
+    }
+
+    // Helper class to store method information
+    private static class MethodFunction implements AgentFunction {
+        private final Method method;
+        private final Object instance;
+
+        public MethodFunction(Method method, Object instance) {
+            this.method = method;
+            this.instance = instance;
+        }
+
+        public Method getMethod() {
+            return method;
+        }
+
+        @Override
+        public Object execute(Map<String, Object> parameters) throws Exception {
+            Parameter[] methodParams = method.getParameters();
+            Object[] args = new Object[methodParams.length];
+            
+            for (int i = 0; i < methodParams.length; i++) {
+                Parameter param = methodParams[i];
+                String paramName = param.getName();
+                Class<?> paramType = param.getType();
+                Object value = parameters.get(paramName);
+                
+                if (value != null) {
+                    args[i] = convertValue(value, paramType);
+                }
+            }
+            
+            return method.invoke(instance, args);
+        }
+
+        private Object convertValue(Object value, Class<?> targetType) {
+            if (value == null) return null;
+            
+            try {
+                if (targetType == String.class) {
+                    return value.toString();
+                } else if (targetType == int.class || targetType == Integer.class) {
+                    return ((Number) value).intValue();
+                } else if (targetType == long.class || targetType == Long.class) {
+                    return ((Number) value).longValue();
+                } else if (targetType == float.class || targetType == Float.class) {
+                    return ((Number) value).floatValue();
+                } else if (targetType == double.class || targetType == Double.class) {
+                    return ((Number) value).doubleValue();
+                } else if (targetType == boolean.class || targetType == Boolean.class) {
+                    if (value instanceof String) {
+                        return Boolean.parseBoolean((String) value);
+                    }
+                    return (Boolean) value;
+                } else if (targetType.isArray()) {
+                    // Handle array conversion
+                    if (value instanceof List) {
+                        List<?> list = (List<?>) value;
+                        Object array = Array.newInstance(targetType.getComponentType(), list.size());
+                        for (int i = 0; i < list.size(); i++) {
+                            Array.set(array, i, convertValue(list.get(i), targetType.getComponentType()));
+                        }
+                        return array;
+                    }
+                }
+                return value;
+            } catch (Exception e) {
+                throw new IllegalArgumentException("Failed to convert value " + value + " to type " + targetType, e);
+            }
+        }
     }
 
     /**
@@ -352,5 +483,75 @@ public class OpenAIAgent implements Agent {
                 }, schema);
             }
         }
+    }
+
+    private String generateSystemPrompt() {
+        StringBuilder prompt = new StringBuilder();
+        prompt.append("You are a helpful assistant that can use provided functions. ");
+        prompt.append("Please follow these guidelines when using functions:\n\n");
+        
+        // Add general guidelines
+        prompt.append("1. Always provide ALL required arguments according to the function schema\n");
+        prompt.append("2. Use the correct data types for arguments:\n");
+        prompt.append("   - For numbers: Use numeric values without quotes\n");
+        prompt.append("   - For strings: Use quoted text\n");
+        prompt.append("   - For arrays: Use JSON array format\n");
+        prompt.append("   - For booleans: Use true or false\n\n");
+        
+        // Add function-specific guidelines
+        prompt.append("3. Function-specific guidelines:\n");
+        for (Map.Entry<String, AgentFunction> entry : functions.entrySet()) {
+            String functionName = entry.getKey();
+            ObjectNode schema = functionSchemas.getOrDefault(functionName, createDefaultSchema(functionName));
+            
+            prompt.append(String.format("   - %s:\n", functionName));
+            JsonNode properties = schema.path("properties");
+            if (properties.isObject()) {
+                properties.fields().forEachRemaining(field -> {
+                    String paramName = field.getKey();
+                    JsonNode paramInfo = field.getValue();
+                    String type = paramInfo.path("type").asText("any");
+                    String description = paramInfo.path("description").asText("");
+                    prompt.append(String.format("     * %s (%s): %s\n", paramName, type, description));
+                });
+            }
+        }
+        
+        // Add error handling guidelines
+        prompt.append("\n4. Error handling:\n");
+        prompt.append("   - If a function call fails, I will provide an error message\n");
+        prompt.append("   - For numeric operations, ensure inputs are within valid ranges\n");
+        prompt.append("   - For string operations, ensure inputs are properly formatted\n");
+        
+        return prompt.toString();
+    }
+
+    private String getFunctionDescription(String functionName, AgentFunction function) {
+        if (function instanceof MethodFunction) {
+            Method method = ((MethodFunction) function).getMethod();
+            StringBuilder description = new StringBuilder();
+            
+            // Add return type information
+            description.append("Returns ").append(method.getReturnType().getSimpleName()).append(". ");
+            
+            // Add parameter information
+            Parameter[] params = method.getParameters();
+            if (params.length > 0) {
+                description.append("Takes ");
+                for (int i = 0; i < params.length; i++) {
+                    if (i > 0) {
+                        description.append(i == params.length - 1 ? " and " : ", ");
+                    }
+                    description.append(params[i].getType().getSimpleName())
+                             .append(" ")
+                             .append(params[i].getName());
+                }
+                description.append(".");
+            }
+            
+            return description.toString();
+        }
+        
+        return "Execute " + functionName;
     }
 } 
