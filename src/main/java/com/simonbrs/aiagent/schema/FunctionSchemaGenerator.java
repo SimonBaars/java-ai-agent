@@ -82,7 +82,9 @@ public class FunctionSchemaGenerator {
         if (lowerName.contains("sequence") || lowerName.contains("generate")) {
             if (paramName.equals("arg0")) {
                 property.put("description", "Type of sequence to generate (e.g., 'fibonacci' or 'prime')");
-                property.put("enum", new String[]{"fibonacci", "prime"});
+                ArrayNode enumValues = property.putArray("enum");
+                enumValues.add("fibonacci");
+                enumValues.add("prime");
             } else if (paramName.equals("arg1")) {
                 property.put("description", "Length of sequence to generate");
                 property.put("type", "number");
