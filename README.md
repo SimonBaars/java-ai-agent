@@ -10,6 +10,7 @@ A Java library for creating AI agents that can interact with OpenAI's language m
 - Automatic schema generation for Java methods
 - Conversation history management
 - Context-aware messaging
+- Tool chaining: The AI decides which tools to run to best answer the query
 
 ## Prerequisites
 
@@ -25,7 +26,7 @@ Add the following dependency to your `pom.xml`:
 <dependency>
     <groupId>com.simonbrs</groupId>
     <artifactId>aiagent</artifactId>
-    <version>1.1</version>
+    <version>1.2</version>
 </dependency>
 ```
 
@@ -58,6 +59,8 @@ System.out.println(result);
 
 ### Automatic Method Registration
 
+See the [ReadmeCalculator](src/main/java/com/simonbrs/aiagent/examples/ReadmeCalculator.java) for the runnable version of below code.
+
 ```java
 // Create a class with methods
 public class Calculator {
@@ -83,7 +86,7 @@ agent.registerMethods(calculator);
 String[] questions = {
     "What is 15 added to 3?",
     "Store the number 42 in memory",
-    "What number is currently stored in memory?",
+    "Add ten to the number stored in memory",
 };
 
 for (String question : questions) {
@@ -95,6 +98,22 @@ for (String question : questions) {
         System.err.println("Error: " + e.getMessage());
     }
 }
+```
+
+Output:
+```
+Question: What is 15 added to 3?
+Tool called: add(15.0, 3.0)
+Answer: 15 added to 3 is 18.0.
+
+Question: Store the number 42 in memory
+Tool called: setMemory(42.0)
+Answer: The number 42 has been stored in memory.
+
+Question: Add ten to the number stored in memory
+Tool called: getMemory()
+Tool called: add(42.0, 10.0)
+Answer: The number stored in memory is 42. Adding ten to it results in 52.0.
 ```
 
 ## Examples
