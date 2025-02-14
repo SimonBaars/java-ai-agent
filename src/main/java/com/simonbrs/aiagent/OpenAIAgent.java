@@ -178,26 +178,36 @@ public class OpenAIAgent implements Agent {
         ObjectNode responseJson = (ObjectNode) objectMapper.readTree(responseBody);
         ObjectNode responseMessage = (ObjectNode) responseJson.path("choices").get(0).path("message");
         JsonNode toolCalls = responseMessage.path("tool_calls");
+        String content = responseMessage.path("content").isNull() ? null : responseMessage.path("content").asText();
 
+        StringBuilder finalResponse = new StringBuilder();
+        
+        // Add the assistant's text response if present
+        if (content != null && !content.trim().isEmpty()) {
+            finalResponse.append(content);
+        }
+
+        // Handle tool calls if present
         if (!toolCalls.isMissingNode() && toolCalls.isArray() && toolCalls.size() > 0) {
-            String responseContent = responseMessage.path("content").isNull() ? 
-                null : responseMessage.path("content").asText();
-            conversationHistory.addAssistantMessage(responseContent, toolCalls);
+            // Add the assistant's message with both content and tool calls to history
+            conversationHistory.addAssistantMessage(content, toolCalls);
 
-            StringBuilder finalResponse = new StringBuilder();
+            // Execute each tool call and append results
             for (JsonNode toolCall : toolCalls) {
                 String result = executeToolCall(toolCall);
-                if (finalResponse.length() > 0) {
+                if (finalResponse.length() > 0 && result != null && !result.trim().isEmpty()) {
                     finalResponse.append("\n");
                 }
-                finalResponse.append(result);
+                if (result != null && !result.trim().isEmpty()) {
+                    finalResponse.append(result);
+                }
             }
-            return finalResponse.toString();
         } else {
-            String content = responseMessage.path("content").asText();
+            // If no tool calls, just add the content to history
             conversationHistory.addAssistantMessage(content, null);
-            return content;
         }
+
+        return finalResponse.toString();
     }
 
     private String executeToolCall(JsonNode toolCall) throws Exception {
