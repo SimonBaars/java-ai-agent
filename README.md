@@ -1,6 +1,67 @@
 # Java AI Agent Library
 
-A Java library for creating AI agents that can interact with OpenAI's language models and execute Java functions via reflection.
+A Java library for creating AI agents that can interact with OpenAI's language models and execute Java functions:
+
+```java
+// Create a class with methods
+public class Calculator {
+    private double memory = 0.0;
+
+    public double add(double a, double b) {
+        return a + b;
+    }
+
+    public double getMemory() {
+        return memory;
+    }
+
+    public void setMemory(double value) {
+        this.memory = value;
+    }
+}
+
+// Create an agent instance
+String apiKey = System.getenv("OPENAI_API_KEY");
+OpenAIAgent agent = new OpenAIAgent(apiKey, "gpt-4o");
+
+// Register all methods automatically
+Calculator calculator = new Calculator();
+agent.registerMethods(calculator);
+
+String[] questions = {
+    "What is 15 added to 3?",
+    "Store the number 42 in memory",
+    "Add ten to the number stored in memory",
+};
+
+for (String question : questions) {
+    try {
+        System.out.println("\nQuestion: " + question);
+        String response = agent.sendMessage(question).get();
+        System.out.println("Answer: " + response);
+    } catch (Exception e) {
+        System.err.println("Error: " + e.getMessage());
+    }
+}
+```
+
+Output:
+```
+Question: What is 15 added to 3?
+Tool called: add(15.0, 3.0)
+Answer: 15 added to 3 is 18.0.
+
+Question: Store the number 42 in memory
+Tool called: setMemory(42.0)
+Answer: The number 42 has been stored in memory.
+
+Question: Add ten to the number stored in memory
+Tool called: getMemory()
+Tool called: add(42.0, 10.0)
+Answer: The number stored in memory is 42. Adding ten to it results in 52.0.
+```
+
+No more extensive schema creation, no more manual API calls. Just a single `agent.registerMethods` to register the available tools, and the agent will handle the rest.
 
 ## Features
 
@@ -60,61 +121,6 @@ System.out.println(result);
 ### Automatic Method Registration
 
 See the [ReadmeCalculator](src/main/java/com/simonbrs/aiagent/examples/ReadmeCalculator.java) for the runnable version of below code.
-
-```java
-// Create a class with methods
-public class Calculator {
-    private double memory = 0.0;
-
-    public double add(double a, double b) {
-        return a + b;
-    }
-
-    public double getMemory() {
-        return memory;
-    }
-
-    public void setMemory(double value) {
-        this.memory = value;
-    }
-}
-
-// Register all methods automatically
-Calculator calculator = new Calculator();
-agent.registerMethods(calculator);
-
-String[] questions = {
-    "What is 15 added to 3?",
-    "Store the number 42 in memory",
-    "Add ten to the number stored in memory",
-};
-
-for (String question : questions) {
-    try {
-        System.out.println("\nQuestion: " + question);
-        String response = agent.sendMessage(question).get();
-        System.out.println("Answer: " + response);
-    } catch (Exception e) {
-        System.err.println("Error: " + e.getMessage());
-    }
-}
-```
-
-Output:
-```
-Question: What is 15 added to 3?
-Tool called: add(15.0, 3.0)
-Answer: 15 added to 3 is 18.0.
-
-Question: Store the number 42 in memory
-Tool called: setMemory(42.0)
-Answer: The number 42 has been stored in memory.
-
-Question: Add ten to the number stored in memory
-Tool called: getMemory()
-Tool called: add(42.0, 10.0)
-Answer: The number stored in memory is 42. Adding ten to it results in 52.0.
-```
 
 ## Examples
 
