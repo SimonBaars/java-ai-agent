@@ -124,18 +124,51 @@ See the [ReadmeCalculator](src/main/java/com/simonbrs/aiagent/examples/ReadmeCal
 
 ## Examples
 
-The library includes two example applications:
+The library includes several example applications demonstrating different features:
 
-1. `SimpleCalculator`: Demonstrates manual function registration with schemas
-2. `ReflectionCalculator`: Shows automatic method registration using reflection
+1. `SimpleCalculator`: Demonstrates manual function registration with schemas. Shows how to:
+   - Create and register functions with custom schemas
+   - Handle basic arithmetic operations
+   - Validate inputs and handle errors
+   - Example: `mvn exec:java -Dexec.mainClass="com.simonbrs.aiagent.examples.SimpleCalculator"`
 
-To run the examples:
+2. `ReflectionCalculator`: Shows automatic method registration using reflection. Features:
+   - Automatic registration of all public methods
+   - Memory operations (store/recall values)
+   - Error handling for edge cases (division by zero, infinity)
+   - Example: `mvn exec:java -Dexec.mainClass="com.simonbrs.aiagent.examples.ReflectionCalculator"`
+
+3. `MultiToolCalculator`: Demonstrates multi-tool-call pipelines. Shows how to:
+   - Chain multiple tool calls together
+   - Mix text responses with calculations
+   - Track state between operations
+   - Provide step-by-step explanations
+   - Example: `mvn exec:java -Dexec.mainClass="com.simonbrs.aiagent.examples.MultiToolCalculator"`
+
+4. `AdvancedCalculator`: Showcases advanced mathematical and utility functions:
+   - Advanced math operations (power, sqrt, factorial)
+   - Statistical analysis (mean, median, mode)
+   - Unit conversions (temperature, distance)
+   - Sequence generation (Fibonacci, primes)
+   - String formatting and number-to-words conversion
+   - Multi-key memory operations
+   - Example: `mvn exec:java -Dexec.mainClass="com.simonbrs.aiagent.examples.AdvancedCalculator"`
+
+To run any example:
 
 ```bash
 export OPENAI_API_KEY=your_api_key_here
-mvn exec:java -Dexec.mainClass="com.simonbrs.aiagent.examples.SimpleCalculator"
-mvn exec:java -Dexec.mainClass="com.simonbrs.aiagent.examples.ReflectionCalculator"
+mvn exec:java -Dexec.mainClass="com.simonbrs.aiagent.examples.$EXAMPLE_NAME"
 ```
+
+Each example demonstrates different aspects of the library's capabilities. The `MultiToolCalculator` and `AdvancedCalculator` are particularly interesting as they show how the AI agent can:
+- Chain multiple operations together
+- Maintain state between operations
+- Provide detailed explanations
+- Handle complex multi-step calculations
+- Mix natural language responses with computational results
+
+See the individual example files for detailed documentation and usage scenarios.
 
 ## Building from Source
 
