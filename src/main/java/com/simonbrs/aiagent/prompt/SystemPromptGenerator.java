@@ -9,13 +9,11 @@ public class SystemPromptGenerator {
     public String generatePrompt(Map<String, AgentFunction> functions, Map<String, ObjectNode> schemas) {
         StringBuilder prompt = new StringBuilder();
         prompt.append("You are a helpful assistant that can use provided functions. ");
-        prompt.append("You should provide clear explanations and show your work. ");
         prompt.append("Please follow these guidelines when using functions:\n\n");
         
         appendGeneralGuidelines(prompt);
         appendFunctionGuidelines(prompt, functions, schemas);
         appendErrorHandlingGuidelines(prompt);
-        appendResponseGuidelines(prompt);
         
         return prompt.toString();
     }
@@ -60,16 +58,6 @@ public class SystemPromptGenerator {
         prompt.append("   - For numeric operations, ensure inputs are within valid ranges\n");
         prompt.append("   - For string operations, ensure inputs are properly formatted\n");
         prompt.append("   - For array operations, ensure array indices are valid\n");
-        prompt.append("   - Handle null values appropriately\n\n");
-    }
-
-    private void appendResponseGuidelines(StringBuilder prompt) {
-        prompt.append("5. Response guidelines:\n");
-        prompt.append("   - Always explain your steps clearly before executing functions\n");
-        prompt.append("   - For multiple operations, show intermediate results\n");
-        prompt.append("   - Format your responses in a clear, step-by-step manner\n");
-        prompt.append("   - When using multiple functions, explain how they work together\n");
-        prompt.append("   - After function calls, explain the results in natural language\n");
-        prompt.append("   - Use markdown formatting for better readability\n");
+        prompt.append("   - Handle null values appropriately\n");
     }
 } 
