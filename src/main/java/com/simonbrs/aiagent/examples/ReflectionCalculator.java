@@ -12,25 +12,41 @@ public class ReflectionCalculator {
 
     public double add(double a, double b) {
         System.out.println("Java add() called with: " + a + " + " + b);
-        return a + b;
+        double result = a + b;
+        if (Double.isInfinite(result)) {
+            throw new IllegalArgumentException("Result would be too large to represent");
+        }
+        return result;
     }
 
     public double subtract(double a, double b) {
         System.out.println("Java subtract() called with: " + a + " - " + b);
-        return a - b;
+        double result = a - b;
+        if (Double.isInfinite(result)) {
+            throw new IllegalArgumentException("Result would be too large to represent");
+        }
+        return result;
     }
 
     public double multiply(double a, double b) {
         System.out.println("Java multiply() called with: " + a + " * " + b);
-        return a * b;
+        double result = a * b;
+        if (Double.isInfinite(result)) {
+            throw new IllegalArgumentException("Result would be too large to represent");
+        }
+        return result;
     }
 
     public double divide(double a, double b) {
         System.out.println("Java divide() called with: " + a + " / " + b);
         if (b == 0) {
-            throw new IllegalArgumentException("Cannot divide by zero");
+            throw new IllegalArgumentException("Division by zero is not allowed");
         }
-        return a / b;
+        double result = a / b;
+        if (Double.isInfinite(result)) {
+            throw new IllegalArgumentException("Result would be too large to represent");
+        }
+        return result;
     }
 
     public double getMemory() {
@@ -38,12 +54,15 @@ public class ReflectionCalculator {
         return memory;
     }
 
-    public void setMemory(double arg0) {
-        System.out.println("Java setMemory() called with: " + arg0);
-        if (Double.isInfinite(arg0) || Double.isNaN(arg0)) {
-            throw new IllegalArgumentException("Cannot store infinite or NaN values in memory");
+    public void setMemory(double value) {
+        System.out.println("Java setMemory() called with: " + value);
+        if (Double.isInfinite(value)) {
+            throw new IllegalArgumentException("Cannot store infinite values in memory");
         }
-        memory = arg0;
+        if (Double.isNaN(value)) {
+            throw new IllegalArgumentException("Cannot store NaN (Not a Number) in memory");
+        }
+        memory = value;
     }
 
     public static void main(String[] args) throws ExecutionException, InterruptedException {
