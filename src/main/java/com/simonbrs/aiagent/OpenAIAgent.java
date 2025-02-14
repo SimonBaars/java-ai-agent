@@ -77,11 +77,11 @@ public class OpenAIAgent implements Agent {
 
                 ObjectNode requestBody = createRequestBody();
                 String requestBodyStr = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(requestBody);
-                logger.info("Request body: {}", requestBodyStr);
+                logger.debug("Request body: {}", requestBodyStr);
 
                 HttpResponse<String> response = sendRequest(requestBodyStr);
-                logger.info("Response status: {}", response.statusCode());
-                logger.info("Response body: {}", response.body());
+                logger.debug("Response status: {}", response.statusCode());
+                logger.debug("Response body: {}", response.body());
 
                 if (response.statusCode() != 200) {
                     handleErrorResponse(response);
@@ -205,7 +205,7 @@ public class OpenAIAgent implements Agent {
         String arguments = toolCall.path("function").path("arguments").asText();
         String toolCallId = toolCall.path("id").asText();
         
-        logger.info("Function call: {} with arguments: {}", functionName, arguments);
+        logger.debug("Function call: {} with arguments: {}", functionName, arguments);
 
         AgentFunction function = functions.get(functionName);
         if (function == null) {
