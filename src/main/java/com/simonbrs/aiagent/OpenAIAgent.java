@@ -176,28 +176,64 @@ public class OpenAIAgent implements Agent {
 
     private String processResponse(String responseBody) throws Exception {
         ObjectNode responseJson = (ObjectNode) objectMapper.readTree(responseBody);
-        ObjectNode responseMessage = (ObjectNode) responseJson.path("choices").get(0).path("message");
-        JsonNode toolCalls = responseMessage.path("tool_calls");
+        StringBuilder finalResponse = new StringBuilder();
+        boolean shouldContinue;
+        int maxIterations = 10; // Prevent infinite loops
+        int currentIteration = 0;
 
-        if (!toolCalls.isMissingNode() && toolCalls.isArray() && toolCalls.size() > 0) {
-            String responseContent = responseMessage.path("content").isNull() ? 
-                null : responseMessage.path("content").asText();
-            conversationHistory.addAssistantMessage(responseContent, toolCalls);
+        do {
+            ObjectNode responseMessage = (ObjectNode) responseJson.path("choices").get(0).path("message");
+            JsonNode toolCalls = responseMessage.path("tool_calls");
+            String content = responseMessage.path("content").isNull() ? null : responseMessage.path("content").asText();
 
-            StringBuilder finalResponse = new StringBuilder();
-            for (JsonNode toolCall : toolCalls) {
-                String result = executeToolCall(toolCall);
+            // If there's content, add it to the response
+            if (content != null && !content.trim().isEmpty()) {
                 if (finalResponse.length() > 0) {
                     finalResponse.append("\n");
                 }
-                finalResponse.append(result);
+                finalResponse.append(content);
             }
-            return finalResponse.toString();
-        } else {
-            String content = responseMessage.path("content").asText();
-            conversationHistory.addAssistantMessage(content, null);
-            return content;
+
+            // Handle tool calls if present
+            if (!toolCalls.isMissingNode() && toolCalls.isArray() && toolCalls.size() > 0) {
+                conversationHistory.addAssistantMessage(content, toolCalls);
+
+                // Execute all tool calls and collect their results
+                StringBuilder toolResults = new StringBuilder();
+                for (JsonNode toolCall : toolCalls) {
+                    String result = executeToolCall(toolCall);
+                    if (toolResults.length() > 0) {
+                        toolResults.append("\n");
+                    }
+                    toolResults.append(result);
+                }
+
+                // Create a new request to continue the conversation with tool results
+                ObjectNode newRequestBody = createRequestBody();
+                String newRequestBodyStr = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(newRequestBody);
+                HttpResponse<String> newResponse = sendRequest(newRequestBodyStr);
+
+                if (newResponse.statusCode() != 200) {
+                    handleErrorResponse(newResponse);
+                    throw new RuntimeException("API request failed with status code: " + newResponse.statusCode());
+                }
+
+                responseJson = (ObjectNode) objectMapper.readTree(newResponse.body());
+                shouldContinue = true;
+            } else {
+                // No more tool calls, add the final content and finish
+                conversationHistory.addAssistantMessage(content, null);
+                shouldContinue = false;
+            }
+
+            currentIteration++;
+        } while (shouldContinue && currentIteration < maxIterations);
+
+        if (currentIteration >= maxIterations) {
+            logger.warn("Reached maximum number of iterations ({}). Breaking the loop.", maxIterations);
         }
+
+        return finalResponse.toString();
     }
 
     private String executeToolCall(JsonNode toolCall) throws Exception {
