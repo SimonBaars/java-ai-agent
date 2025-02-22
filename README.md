@@ -63,6 +63,8 @@ Answer: The number stored in memory is 42. Adding ten to it results in 52.0.
 
 No more extensive schema creation, no more manual API calls. Just a single `agent.registerMethods` to register the available tools, and the agent will handle the rest.
 
+See the [ReadmeCalculator](src/main/java/com/simonbrs/aiagent/examples/ReadmeCalculator.java) for the runnable version of above example.
+
 ## Features
 
 - Easy integration with OpenAI's GPT models
@@ -117,10 +119,6 @@ CompletableFuture<String> response = agent.sendMessage("What is the capital of F
 String result = response.get();
 System.out.println(result);
 ```
-
-### Automatic Method Registration
-
-See the [ReadmeCalculator](src/main/java/com/simonbrs/aiagent/examples/ReadmeCalculator.java) for the runnable version of below code.
 
 ## Examples
 
